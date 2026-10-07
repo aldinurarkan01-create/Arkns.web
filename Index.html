@@ -1,1 +1,222 @@
-Arkns.web
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Arkns.web</title>
+<meta name="theme-color" content="#34eb7d">
+<style>
+html,body{width:100%;height:100%;margin:0;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;background:#f7f7f7;color:#111}
+body{animation:softblur 13s infinite}
+@keyframes softblur{0%,90%{filter:none}94%{filter:blur(1.5px)}100%{filter:none}}
+#app{width:100%;height:100%;position:relative}
+#home{height:100%;display:flex;align-items:center;justify-content:center;text-align:center}
+.card{width:min(650px,90vw);padding:24px;border-radius:18px;background:#fff;box-shadow:0 10px 45px #0002}
+.logo{font-size:76px;line-height:1}
+h1{margin:8px 0;font-size:42px}
+h2{margin:8px 0}
+p{color:#555}
+#target{width:280px;max-width:75vw;cursor:pointer;user-select:none;transition:.15s}
+#target:hover{transform:scale(1.03)}
+#hint{font-weight:700}
+#overlay{position:fixed;inset:0;display:none;z-index:20;background:#111;color:#fff}
+.popup{position:absolute;width:270px;max-width:78vw;background:#fff;color:#111;border:2px solid #111;border-radius:8px;box-shadow:8px 8px 0 #000;overflow:hidden}
+.pophead{padding:7px 10px;background:#eee;font-weight:700;display:flex;justify-content:space-between}
+.popbody{padding:16px}
+.popbody button{padding:9px 13px;border:1px solid #333;background:#fff;border-radius:5px;cursor:pointer}
+#counter{position:fixed;top:12px;right:14px;background:#ff304f;color:#fff;border-radius:20px;padding:8px 12px;font-weight:800}
+#msg{position:fixed;left:0;top:0;color:red;font-size:18px;font-weight:800;text-shadow:2px 2px #fff,4px 4px 10px #000;pointer-events:none}
+#final{display:none;position:fixed;inset:0;z-index:50;background:#111;color:#fff;align-items:center;justify-content:center;text-align:center}
+#final .card{background:#191919;color:#fff;box-shadow:0 0 50px #34eb7d55}
+.green{color:#34eb7d}
+.shake{animation:shake .08s infinite}
+@keyframes shake{0%{transform:translate(0)}25%{transform:translate(4px,-2px)}50%{transform:translate(-4px,2px)}75%{transform:translate(2px,2px)}100%{transform:translate(0)}}
+.flash{animation:flash .35s 2}
+@keyframes flash{50%{filter:invert(1)}}
+.full{position:fixed;inset:0;background:#000d;z-index:30;display:flex;align-items:center;justify-content:center}
+.full .box{background:#fff;color:#111;padding:24px;border-radius:14px;width:80%;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="home">
+    <div class="card">
+      <div class="logo">🐦</div>
+      <h1>Arkns.web</h1>
+      <h2>Siemano kolano! 😎</h2>
+      <p>Tekan tombol di bawah <b>3 kali</b>.<br>Atau klik burungnya.</p>
+      <div id="target" onclick="trigger()">
+        <div style="font-size:120px">🐦</div>
+      </div>
+      <div id="hint">Klik 0 / 3</div>
+      <p style="font-size:12px;color:#999">Situs prank/edukasi browser — tidak melakukan perubahan pada perangkat.</p>
+    </div>
+  </div>
+
+  <div id="overlay">
+    <div id="counter">ARKNS MODE: <span id="n">0</span></div>
+    <div id="msg"></div>
+  </div>
+
+  <div id="final">
+    <div class="card">
+      <div style="font-size:80px">😂</div>
+      <h1 class="green">KENA PRANK!</h1>
+      <p style="color:#ddd">Itu cuma Arkns.web.</p>
+      <p style="color:#aaa">Tidak ada file, password, kamera, kontak, atau data pribadi yang diambil.</p>
+      <button onclick="location.reload()" style="padding:12px 18px">Ulangi 😈</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let clicks=0, active=false, effects=0, audioCtx=null, osc=null, gain=null;
+const $=id=>document.getElementById(id);
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+
+function trigger(){
+  if(active)return;
+  clicks++;
+  $("hint").textContent=`Klik ${clicks} / 3`;
+  $("target").style.transform=`rotate(${Math.random()*14-7}deg) scale(${1+clicks*.04})`;
+  if(clicks>=3) start();
+}
+document.addEventListener("keydown",e=>{
+  if(e.code==="Space"){e.preventDefault();trigger()}
+});
+
+function startSiren(){
+  try{
+    audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    osc=audioCtx.createOscillator();
+    gain=audioCtx.createGain();
+    osc.type="sawtooth";
+    osc.frequency.value=300;
+    gain.gain.value=.0001;
+    osc.connect(gain); gain.connect(audioCtx.destination); osc.start();
+    const t=audioCtx.currentTime;
+    gain.gain.linearRampToValueAtTime(.025,t+2);
+    gain.gain.linearRampToValueAtTime(.06,t+8);
+    gain.gain.linearRampToValueAtTime(.10,t+15);
+    gain.gain.linearRampToValueAtTime(.15,t+23);
+    let rising=true;
+    window.sirenLoop=setInterval(()=>{
+      if(!audioCtx)return;
+      const now=audioCtx.currentTime;
+      osc.frequency.cancelScheduledValues(now);
+      osc.frequency.setValueAtTime(rising?330:850,now);
+      osc.frequency.linearRampToValueAtTime(rising?850:330,now+.8);
+      rising=!rising;
+    },800);
+  }catch(e){}
+}
+function stopSiren(){
+  if(window.sirenLoop)clearInterval(window.sirenLoop);
+  if(gain&&audioCtx){
+    gain.gain.cancelScheduledValues(audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(.0001,audioCtx.currentTime+.35);
+    setTimeout(()=>{try{osc.stop()}catch(e){}},400);
+  }
+}
+
+async function start(){
+  active=true;
+  $("home").style.display="none";
+  $("overlay").style.display="block";
+  try{await document.documentElement.requestFullscreen()}catch(e){}
+  startSiren();
+  runEffects();
+}
+
+const messages=[
+ ["Arkns.web","Memeriksa browser...","normal"],
+ ["PERINGATAN","Aktivitas tidak dikenal ditemukan.","warn"],
+ ["Arkns Security","Pemeriksaan keamanan dimulai.","normal"],
+ ["SYSTEM ALERT","Respons perangkat terlambat.","warn"],
+ ["Browser","Ada sesuatu yang aneh di tab ini.","warn"],
+ ["Arkns.web","Mencoba memperbaiki tampilan...","normal"],
+ ["SECURITY","Pemeriksaan kedua diperlukan.","warn"],
+ ["WARNING","Jangan tutup halaman dulu.","danger"],
+ ["Arkns.web","Kenapa kamu masih klik? 😭","normal"],
+ ["SYSTEM","Sinkronisasi gagal.","danger"],
+ ["SECURITY ALERT","Gangguan visual terdeteksi.","danger"],
+ ["Arkns.web","Mencari sumber gangguan...","normal"],
+ ["WARNING","Sumber tidak ditemukan.","danger"],
+ ["SYSTEM ALERT","Mode darurat aktif.","danger"],
+ ["Arkns.web","Tenang... ini belum apa-apa 😈","normal"],
+ ["SECURITY","Mendeteksi popup tambahan...","warn"],
+ ["WARNING","POPUP TERDETEKSI.","danger"],
+ ["SYSTEM","Menutup popup... GAGAL.","danger"],
+ ["Arkns.web","Mencoba lagi...","normal"],
+ ["CRITICAL","Terlalu banyak jendela aktif.","danger"],
+ ["CRITICAL","LAYAR TIDAK STABIL.","danger"],
+ ["SYSTEM","Memulihkan tampilan...","warn"],
+ ["WARNING","Pemulihan gagal.","danger"],
+ ["Arkns.web","Bro... jangan panik 😹","normal"],
+ ["SECURITY ALERT","Pemeriksaan terakhir dimulai.","danger"],
+ ["SYSTEM","Memindai tampilan browser...","normal"],
+ ["CRITICAL ALERT","RESPONS BROWSER MENURUN.","danger"],
+ ["Arkns.web","Kalau sampai panik, berarti berhasil.","normal"],
+ ["SYSTEM","Menyiapkan hasil pemeriksaan...","warn"],
+ ["FINAL WARNING","3...","danger"],
+ ["FINAL WARNING","2...","danger"],
+ ["FINAL WARNING","1...","danger"]
+];
+
+function addPopup(title,text,type){
+  const p=document.createElement("div");
+  p.className="popup";
+  p.style.left=Math.max(2,Math.random()*72)+"%";
+  p.style.top=Math.max(5,Math.random()*78)+"%";
+  if(type==="danger")p.style.borderColor="#f00";
+  if(type==="warn")p.style.boxShadow="8px 8px 0 #e22";
+  p.innerHTML=`<div class="pophead"><span>${title}</span><span>×</span></div>
+  <div class="popbody"><b>${text}</b><br><br>
+  <button onclick="this.closest('.popup').remove()">OK</button>
+  <button onclick="this.closest('.popup').remove()">Tutup</button></div>`;
+  $("overlay").appendChild(p);
+  effects++;
+  $("n").textContent=effects;
+}
+
+async function runEffects(){
+  for(let i=0;i<messages.length;i++){
+    await wait(i<8?500:420);
+    addPopup(messages[i][0],messages[i][1],messages[i][2]);
+
+    if(i===5 || i===12 || i===18 || i===25){
+      $("overlay").classList.add("shake");
+      setTimeout(()=>$("overlay").classList.remove("shake"),650);
+    }
+    if(i===10 || i===20 || i===30){
+      $("overlay").classList.add("flash");
+      setTimeout(()=>$("overlay").classList.remove("flash"),700);
+    }
+  }
+
+  await wait(1800);
+
+  // Safe simulated takeover screen.
+  [...document.querySelectorAll(".popup")].forEach(x=>x.remove());
+  $("overlay").innerHTML += `<div class="full" id="panic">
+    <div class="box">
+      <div style="font-size:65px">⚠️</div>
+      <h1 style="color:#e00">ARKNS MODE</h1>
+      <h2>TERLALU BANYAK POPUP 😈</h2>
+      <p>Browser kamu sebenarnya tetap aman.</p>
+      <p><b>Tekan tombol untuk mengakhiri simulasi.</b></p>
+      <button onclick="finish()">AKHIRI PRANK</button>
+    </div>
+  </div>`;
+}
+
+async function finish(){
+  stopSiren();
+  $("overlay").style.display="none";
+  $("final").style.display="flex";
+  try{if(document.fullscreenElement)await document.exitFullscreen()}catch(e){}
+  active=false;
+}
+</script>
+</body>
+</html>
